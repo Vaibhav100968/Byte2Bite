@@ -1,36 +1,36 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import "./globals.css"
+import type React from "react";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import Header from "@/components/layout/Header";
 
-import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
-import { CartProvider } from "@/components/cart-provider"
-import { CartSheet } from "@/components/cart-sheet"
-import { AuthProvider } from "@/components/auth-provider"
-import { Toaster } from "@/components/ui/toaster"
+import { SiteFooter } from "@/components/site-footer";
+import { CartProvider } from "@/components/cart-provider";
+import { CartSheet } from "@/components/cart-sheet";
+import { AuthProvider } from "@/components/auth-provider";
+import { Toaster } from "@/components/ui/toaster";
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Byte2Bite - Food Delivery Made Easy",
-  description: "Order from the best local restaurants with easy, on-demand delivery.",
-    generator: 'v0.dev'
-}
+  title: "Byte2Bite",
+  description:
+    "Connecting restaurants with customers while reducing food waste",
+};
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" className="h-full">
+      <body className={`${inter.className} h-full`}>
         <AuthProvider>
           <CartProvider>
-            <div className="flex min-h-screen flex-col">
-              <SiteHeader />
-              {children}
+            <div className="flex flex-col h-full">
+              <Header />
+              <main className="flex-1">{children}</main>
               <SiteFooter />
               <CartSheet />
             </div>
@@ -39,9 +39,7 @@ export default function RootLayout({
         </AuthProvider>
       </body>
     </html>
-  )
+  );
 }
 
-
-
-import './globals.css'
+import "./globals.css";

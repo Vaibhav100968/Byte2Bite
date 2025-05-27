@@ -1,116 +1,61 @@
-import Image from "next/image"
-import { Mail, Github, Linkedin } from "lucide-react"
+const cofounders = [
+  {
+    name: "Vaibhav Gollapalli",
+    title: "Cofounder & CEO",
+    description: "Leading the vision and strategy of Byte2Bite",
+  },
+  {
+    name: "Azalea Tang",
+    title: "Cofounder & CTO",
+    description: "Driving technical innovation and development",
+  },
+  {
+    name: "Vishal Jonnalgadda",
+    title: "Cofounder & CTO",
+    description: "Architecting scalable solutions and infrastructure",
+  },
+  {
+    name: "Aleksander Stevens",
+    title: "Cofounder & Chief Marketing Officer",
+    description: "Building brand awareness and growth strategies",
+  },
+];
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-
-interface TeamMemberProps {
-  name: string
-  role: string
-  bio: string
-  image: string
-}
-
-function TeamMember({ name, role, bio, image }: TeamMemberProps) {
+export default function About() {
   return (
-    <Card className="overflow-hidden">
-      <div className="relative h-64 w-full">
-        <Image src={image || "/placeholder.svg"} alt={name} fill className="object-cover" />
-      </div>
-      <CardHeader>
-        <CardTitle>{name}</CardTitle>
-        <CardDescription>{role}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-gray-700">{bio}</p>
-      </CardContent>
-      <CardFooter className="flex justify-start gap-2">
-        <Button variant="outline" size="icon">
-          <Mail className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon">
-          <Github className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon">
-          <Linkedin className="h-4 w-4" />
-        </Button>
-      </CardFooter>
-    </Card>
-  )
-}
-
-export default function AboutPage() {
-  const teamMembers = [
-    {
-      name: "Vishal",
-      role: "Co-Founder & CEO",
-      bio: "Vishal is a passionate programmer. He programmed the UI for Byte2Bite, hoping the vision to connect people with their favorite local restaurants.",
-      image: "/placeholder.svg?height=300&width=300",
-    },
-    {
-      name: "Vaibhav",
-      role: "Co-Founder & CTO",
-      bio: "Vaibhav is a tech enthusiast with expertise in building scalable applications. He leads the backend team at Byte2Bite, ensuring a seamless experience for users and restaurant partners.",
-      image: "/placeholder.svg?height=300&width=300",
-    },
-    {
-      name: "Alex",
-      role: "Chief Marketing Officer",
-      bio: "Alex brings creative marketing strategies to Byte2Bite. With a background in digital marketing, he helps restaurants grow their business through our platform.",
-      image: "/placeholder.svg?height=300&width=300",
-    },
-  ]
-
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-12 text-center">
-        <h1 className="mb-4 text-4xl font-bold">About Byte2Bite</h1>
-        <p className="mx-auto max-w-3xl text-lg text-gray-700">
-          Byte2Bite was founded in 2022 with a simple mission: to connect hungry people with the best local restaurants.
-          We believe that good food should be accessible to everyone, and our platform makes ordering food as easy as a
-          few clicks.
-        </p>
-      </div>
-
-      <div className="mb-16">
-        <h2 className="mb-8 text-center text-3xl font-bold">Our Mission</h2>
-        <div className="grid gap-8 md:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Connect</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>We connect customers with local restaurants, creating a community around great food.</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Deliver</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>We ensure fast, reliable delivery so your food arrives hot and fresh every time.</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Support</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>We support local businesses by providing them with the tools to reach more customers.</p>
-            </CardContent>
-          </Card>
+    <main className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="text-center mb-16">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            About <span className="text-black">Byte</span>
+            <span className="text-[#FF7F50]">2</span>
+            <span className="text-black">Bite</span>
+          </h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            We're on a mission to reduce food waste while connecting restaurants
+            with customers. Our platform helps businesses optimize their
+            inventory and enables customers to enjoy great food while making a
+            positive impact.
+          </p>
         </div>
-      </div>
 
-      <div>
-        <h2 className="mb-8 text-center text-3xl font-bold">Meet Our Team</h2>
-        <div className="grid gap-8 md:grid-cols-3">
-          {teamMembers.map((member) => (
-            <TeamMember key={member.name} name={member.name} role={member.role} bio={member.bio} image={member.image} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {cofounders.map((cofounder, index) => (
+            <div
+              key={index}
+              className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300"
+            >
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {cofounder.name}
+              </h3>
+              <p className="text-[#FF7F50] font-medium mb-4">
+                {cofounder.title}
+              </p>
+              <p className="text-gray-600">{cofounder.description}</p>
+            </div>
           ))}
         </div>
       </div>
-    </div>
-  )
+    </main>
+  );
 }
-
