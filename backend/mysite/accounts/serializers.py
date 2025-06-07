@@ -13,11 +13,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('email', 'username', 'password', 'password2',
-                  'user_type', 'phone_number', 'address')
+                  'user_type', 'phone_number', 'address', 'first_name', 'last_name')
         extra_kwargs = {
             'email': {'required': True},
             'username': {'required': True},
-            'user_type': {'required': True}
+            'user_type': {'required': True},
+            'first_name': {'required': True},
+            'last_name': {'required': True}
         }
 
     def validate(self, attrs):
@@ -41,5 +43,5 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'email', 'username', 'user_type',
-                  'phone_number', 'address', 'created_at')
+                  'phone_number', 'address', 'created_at', 'first_name', 'last_name')
         read_only_fields = ('id', 'created_at')

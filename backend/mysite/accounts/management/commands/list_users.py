@@ -16,6 +16,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'Found {users.count()} users:'))
         for user in users:
             self.stdout.write(f'\nUser ID: {user.id}')
+            self.stdout.write(f'Name: {user.first_name} {user.last_name}')
             self.stdout.write(f'Email: {user.email}')
             self.stdout.write(f'Username: {user.username}')
             self.stdout.write(f'User Type: {user.user_type}')

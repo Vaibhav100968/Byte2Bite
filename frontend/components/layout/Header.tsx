@@ -1,7 +1,20 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useAuth } from "@/components/auth-provider";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { User } from "lucide-react";
 
 const Header = () => {
+  const { user, logout } = useAuth();
+
   return (
     <header className="sticky top-0 z-50 bg-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -18,6 +31,12 @@ const Header = () => {
 
           <div className="flex items-center space-x-4">
             <Link
+              href="/customer/restaurants"
+              className="text-gray-700 hover:text-[#FF7F50] px-3 py-2 rounded-md text-sm font-medium"
+            >
+              Restaurants
+            </Link>
+            <Link
               href="/about"
               className="text-gray-700 hover:text-[#FF7F50] px-3 py-2 rounded-md text-sm font-medium"
             >
@@ -29,18 +48,59 @@ const Header = () => {
             >
               Contact
             </Link>
-            <Link
-              href="/business/login"
-              className="bg-[#FF7F50] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#FF6B3D]"
-            >
-              Login for Businesses
-            </Link>
-            <Link
-              href="/customer/login"
-              className="bg-[#FF7F50] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#FF6B3D]"
-            >
-              Login for Customers
-            </Link>
+
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="relative h-8 w-8 rounded-full"
+                  >
+                    <User className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem>
+                    <Link
+                      href={
+                        user.user_type === "business"
+                          ? "/business/dashboard"
+                          : "/customer/profile"
+                      }
+                    >
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Link
+                      href={
+                        user.user_type === "business"
+                          ? "/business/settings"
+                          : "/customer/settings"
+                      }
+                    >
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Link
+                  href="/business/login"
+                  className="bg-[#FF7F50] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#FF6B3D]"
+                >
+                  Login for Businesses
+                </Link>
+                <Link
+                  href="/customer/login"
+                  className="bg-[#FF7F50] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#FF6B3D]"
+                >
+                  Login for Customers
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -13,9 +13,11 @@ import { useToast } from "@/components/ui/use-toast";
 type User = {
   id: number;
   email: string;
-  name: string;
-  phone: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
   user_type: string;
+  username: string;
 };
 
 type AuthContextType = {
@@ -30,6 +32,7 @@ type AuthContextType = {
   ) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  deleteAccount: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -65,26 +68,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userType: "customer" | "business"
   ) => {
     try {
+      // Split the name into first and last name
+      const [firstName, ...lastNameParts] = name.split(" ");
+      const lastName = lastNameParts.join(" ");
+
       const response = await fetch("http://127.0.0.1:8000/api/auth/register/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name,
+          first_name: firstName,
+          last_name: lastName,
           email,
           phone_number: phone,
           password,
-          password2: password, // Required by backend for password confirmation
+          password2: password,
           user_type: userType,
-          username: email, // Using email as username
+          username: name.toLowerCase().replace(/\s+/g, ""), // Convert to lowercase and remove spaces
         }),
       });
 
       const data = await response.json();
+      console.log("Registration response:", data);
 
       if (!response.ok) {
-        throw new Error(data.error || data.detail || "Registration failed");
+        const errorMessage =
+          data.error ||
+          data.detail ||
+          (typeof data === "object"
+            ? JSON.stringify(data)
+            : "Registration failed");
+        throw new Error(errorMessage);
       }
 
       // Store the token and user data
@@ -101,9 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userType === "business") {
         router.push("/business/dashboard");
       } else {
-        router.push("/");
+        router.push("/customer/restaurants");
       }
     } catch (error: any) {
+      console.error("Registration error details:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to create account",
@@ -149,6 +165,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Redirect based on user type
       if (data.user.user_type === "business") {
         router.push("/business/dashboard");
+      } else if (data.user.user_type === "customer") {
+        router.push("/customer/restaurants");
       } else {
         router.push("/");
       }
@@ -169,8 +187,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/");
   };
 
+  const deleteAccount = async () => {
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/api/auth/delete-account/",
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete account");
+      }
+
+      // Clear local storage and state
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      setUser(null);
+
+      toast({
+        title: "Success",
+        description: "Account deleted successfully",
+      });
+
+      // Redirect to home page
+      router.push("/");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete account",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, signUp, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, signUp, login, logout, deleteAccount }}
+    >
       {children}
     </AuthContext.Provider>
   );
