@@ -1,23 +1,29 @@
+import Image from "next/image";
+
 const cofounders = [
   {
     name: "Vaibhav Gollapalli",
     title: "Cofounder & CEO",
     description: "Leading the vision and strategy of Byte2Bite",
+    image: "/vaibhav.png",
   },
   {
     name: "Azalea Tang",
     title: "Cofounder & CTO",
     description: "Driving technical innovation and development",
+    image: "/azalea.png",
   },
   {
     name: "Vishal Jonnalgadda",
     title: "Cofounder & CTO",
     description: "Architecting scalable solutions and infrastructure",
+    image: "vishal.jpg",
   },
   {
     name: "Aleksander Stevens",
     title: "Cofounder & Chief Marketing Officer",
     description: "Building brand awareness and growth strategies",
+    image: "alek.jpg",
   },
 ];
 
@@ -45,6 +51,14 @@ export default function About() {
               key={index}
               className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300"
             >
+              <div className="relative h-72 w-full mb-4 rounded-lg overflow-hidden">
+                <Image
+                  src={cofounder.image}
+                  alt={cofounder.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
                 {cofounder.name}
               </h3>
