@@ -4,25 +4,25 @@ const cofounders = [
   {
     name: "Vaibhav Gollapalli",
     title: "Cofounder & CEO",
-    description: "Leading the vision and strategy of Byte2Bite",
+    description: "",
     image: "/vaibhav.png",
   },
   {
     name: "Azalea Tang",
     title: "Cofounder & CTO",
-    description: "Driving technical innovation and development",
+    description: "",
     image: "/azalea.png",
   },
   {
     name: "Vishal Jonnalgadda",
     title: "Cofounder & CTO",
-    description: "Architecting scalable solutions and infrastructure",
+    description: "",
     image: "vishal.jpg",
   },
   {
     name: "Aleksander Stevens",
     title: "Cofounder & Chief Marketing Officer",
-    description: "Building brand awareness and growth strategies",
+    description: "",
     image: "alek.jpg",
   },
 ];

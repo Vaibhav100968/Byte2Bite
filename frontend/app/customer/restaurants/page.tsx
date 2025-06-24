@@ -8,8 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Filter, MapPin, Clock } from "lucide-react";
+import { Search, Filter, MapPin, Clock, Camera } from "lucide-react";
 import { RestaurantCard } from "@/components/restaurant-card";
+import Link from "next/link";
 
 // Mock data for restaurants
 const restaurants = [
@@ -58,6 +59,12 @@ export default function CustomerRestaurants() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Restaurants</h1>
           <div className="flex gap-4">
+            <Link href="/customer/analyze">
+              <Button className="bg-green-600 hover:bg-green-700">
+                <Camera className="mr-2 h-4 w-4" />
+                AI Analyzer
+              </Button>
+            </Link>
             <Button className="bg-[#FF7F50] hover:bg-[#FF6B3D]">
               <MapPin className="mr-2 h-4 w-4" />
               Set Location
