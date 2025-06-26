@@ -44,6 +44,14 @@ const cuisineTypes = [
   "Dessert",
 ];
 
+const reportingFrequencies = [
+  { value: "daily", label: "Every 1 day" },
+  { value: "3days", label: "Every 3 days" },
+  { value: "weekly", label: "Once a week" },
+  { value: "monthly", label: "Once a month" },
+  { value: "custom", label: "Custom" },
+];
+
 export default function BusinessSignup() {
   const { signUp } = useAuth();
   const { toast } = useToast();
@@ -57,6 +65,8 @@ export default function BusinessSignup() {
     restaurantName: "",
     address: "",
     cuisine: "",
+    reporting_frequency: "weekly",
+    custom_reporting_days: 7,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,6 +76,10 @@ export default function BusinessSignup() {
 
   const handleCuisineChange = (value: string) => {
     setFormData((prev) => ({ ...prev, cuisine: value }));
+  };
+
+  const handleReportingFrequencyChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, reporting_frequency: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,7 +119,9 @@ export default function BusinessSignup() {
         formData.email,
         formData.phone,
         formData.password,
-        "business"
+        "business",
+        formData.reporting_frequency,
+        formData.custom_reporting_days
       );
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -204,6 +220,40 @@ export default function BusinessSignup() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="grid gap-2">
+                <Label htmlFor="reporting_frequency">
+                  Inventory Report Frequency
+                </Label>
+                <Select
+                  onValueChange={handleReportingFrequencyChange}
+                  value={formData.reporting_frequency}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select reporting frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {reportingFrequencies.map((frequency) => (
+                      <SelectItem key={frequency.value} value={frequency.value}>
+                        {frequency.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {formData.reporting_frequency === "custom" && (
+                <div className="grid gap-2">
+                  <Label htmlFor="custom_reporting_days">Custom Days</Label>
+                  <Input
+                    id="custom_reporting_days"
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={formData.custom_reporting_days}
+                    onChange={handleChange}
+                    placeholder="Enter number of days"
+                  />
+                </div>
+              )}
               <div className="grid gap-2">
                 <Label htmlFor="password">Password</Label>
                 <Input

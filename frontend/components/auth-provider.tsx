@@ -28,7 +28,9 @@ type AuthContextType = {
     email: string,
     phone: string,
     password: string,
-    userType: "customer" | "business"
+    userType: "customer" | "business",
+    reporting_frequency?: string,
+    custom_reporting_days?: number
   ) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -65,28 +67,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     phone: string,
     password: string,
-    userType: "customer" | "business"
+    userType: "customer" | "business",
+    reporting_frequency?: string,
+    custom_reporting_days?: number
   ) => {
     try {
       // Split the name into first and last name
       const [firstName, ...lastNameParts] = name.split(" ");
       const lastName = lastNameParts.join(" ");
 
+      const requestBody: any = {
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        phone_number: phone,
+        password,
+        password2: password,
+        user_type: userType,
+        username: name.toLowerCase().replace(/\s+/g, ""), // Convert to lowercase and remove spaces
+      };
+
+      // Add reporting frequency fields for business users
+      if (userType === "business") {
+        if (reporting_frequency) {
+          requestBody.reporting_frequency = reporting_frequency;
+        }
+        if (custom_reporting_days) {
+          requestBody.custom_reporting_days = custom_reporting_days;
+        }
+      }
+
       const response = await fetch("http://127.0.0.1:8000/api/auth/register/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          first_name: firstName,
-          last_name: lastName,
-          email,
-          phone_number: phone,
-          password,
-          password2: password,
-          user_type: userType,
-          username: name.toLowerCase().replace(/\s+/g, ""), // Convert to lowercase and remove spaces
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();

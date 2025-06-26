@@ -1,9 +1,10 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
-from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserSerializer
+from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserSerializer, UserUpdateSerializer
 import logging
 import json
 
@@ -100,3 +101,28 @@ class DeleteAccountView(generics.DestroyAPIView):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_reporting_frequency(request):
+    """
+    Update user's reporting frequency
+    """
+    try:
+        serializer = UserUpdateSerializer(
+            request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'message': 'Reporting frequency updated successfully',
+                'reporting_frequency': serializer.data['reporting_frequency'],
+                'custom_reporting_days': serializer.data.get('custom_reporting_days')
+            })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        logger.error(f"Error updating reporting frequency: {str(e)}")
+        return Response(
+            {'error': f'Failed to update reporting frequency: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
