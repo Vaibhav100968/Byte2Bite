@@ -31,8 +31,16 @@
 
 ```bash
 cd backend/mysite
+
+# If you have a virtual environment, activate it first:
+source ../../venv/bin/activate  # On macOS/Linux
+# or
+# venv\Scripts\activate  # On Windows
+
+# Install dependencies:
 pip install -r requirements.txt
-# or if no requirements.txt exists:
+
+# If requirements.txt doesn't exist, install manually:
 pip install django djangorestframework djangorestframework-simplejwt django-cors-headers python-dotenv requests openpyxl pandas
 ```
 
@@ -47,6 +55,12 @@ npm install
 
 ```bash
 cd backend/mysite
+
+# Make sure virtual environment is activated:
+source ../../venv/bin/activate  # On macOS/Linux
+# or
+# venv\Scripts\activate  # On Windows
+
 python manage.py makemigrations
 python manage.py migrate
 ```
@@ -91,8 +105,21 @@ npm run dev
 
   - **Solution:** Install Django REST framework: `pip install djangorestframework`
 
+- **Error:** "No module named 'openpyxl'"
+
+  - **Solution:** Install openpyxl: `pip install openpyxl pandas`
+
 - **Error:** Migration issues
   - **Solution:** Delete `db.sqlite3` and run migrations again
+
+### Virtual Environment Issues
+
+- **Error:** "No module named 'django'"
+
+  - **Solution:** Make sure your virtual environment is activated before installing packages
+
+- **Error:** "Command not found: python"
+  - **Solution:** Use `python3` instead of `python` on some systems
 
 ### Frontend Issues
 
@@ -133,6 +160,7 @@ If you encounter issues:
 3. Ensure all dependencies are installed
 4. Check that both servers are running
 5. Look at the browser console for frontend errors
+6. Make sure your virtual environment is activated
 
 ## 🎯 Testing Checklist
 
@@ -144,6 +172,38 @@ If you encounter issues:
 - [ ] Inventory items are created/updated
 - [ ] Can generate inventory reports
 - [ ] Can download Excel files
+
+## 🐛 Common Issues & Solutions
+
+### "ModuleNotFoundError: No module named 'openpyxl'"
+
+```bash
+# Solution: Install the missing package
+pip install openpyxl pandas
+```
+
+### "No module named 'rest_framework'"
+
+```bash
+# Solution: Install Django REST framework
+pip install djangorestframework
+```
+
+### "Command not found: python"
+
+```bash
+# Solution: Use python3 instead
+python3 manage.py runserver
+```
+
+### "Permission denied" when activating venv
+
+```bash
+# Solution: Check if virtual environment exists
+ls -la ../../venv/bin/activate
+# If it doesn't exist, create it:
+python3 -m venv ../../venv
+```
 
 ---
 

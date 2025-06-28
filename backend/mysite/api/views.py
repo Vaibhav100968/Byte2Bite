@@ -380,3 +380,120 @@ def update_reporting_frequency(request):
             {'error': f'Failed to update reporting frequency: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def send_test_inventory_data(request):
+    """
+    Send test inventory data for testing purposes
+    """
+    try:
+        user = request.user
+
+        # Test data with various food items
+        test_items = [
+            {"name": "Ground Beef", "count": 25},
+            {"name": "Chicken Breast", "count": 30},
+            {"name": "Pork Chops", "count": 20},
+            {"name": "Lettuce", "count": 15},
+            {"name": "Tomatoes", "count": 40},
+            {"name": "Onions", "count": 35},
+            {"name": "Cheese", "count": 18},
+            {"name": "Milk", "count": 12},
+            {"name": "Bread", "count": 22},
+            {"name": "Potatoes", "count": 50},
+        ]
+
+        updated_items = []
+
+        # Create or update inventory items
+        for item_data in test_items:
+            item, created = InventoryItem.objects.get_or_create(
+                business=user,
+                name=item_data["name"],
+                defaults={
+                    'total_added': item_data["count"],
+                    'current_quantity': item_data["count"]
+                }
+            )
+
+            if not created:
+                # Update existing item
+                item.total_added += item_data["count"]
+                item.current_quantity += item_data["count"]
+                item.save()
+
+            updated_items.append({
+                'name': item_data["name"],
+                'count': item_data["count"],
+                'total_added': item.total_added,
+                'current_quantity': item.current_quantity
+            })
+
+        # Generate Excel report
+        reports_dir = os.path.join(settings.BASE_DIR, 'inventory_reports')
+        os.makedirs(reports_dir, exist_ok=True)
+
+        # Create Excel file
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Test Inventory Summary"
+
+        # Add headers
+        headers = ['Item Name', 'Total Added',
+                   'Total Sold', 'Current Quantity']
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(
+                start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+
+        # Add data
+        for row, item in enumerate(updated_items, 2):
+            ws.cell(row=row, column=1, value=item['name'])
+            ws.cell(row=row, column=2, value=item['total_added'])
+            ws.cell(row=row, column=3, value=0)  # No sales in test data
+            ws.cell(row=row, column=4, value=item['current_quantity'])
+
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+
+        # Generate filename
+        today = datetime.now()
+        filename = f"test_inventory_{today.strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"
+        file_path = os.path.join(reports_dir, filename)
+        wb.save(file_path)
+
+        # Create report record
+        report = InventoryReport.objects.create(
+            business=user,
+            report_type='test',
+            file_path=file_path,
+            period_start=today.date(),
+            period_end=today.date()
+        )
+
+        return Response({
+            'message': 'Test inventory data sent successfully',
+            'updated_items': updated_items,
+            'report_id': report.id,
+            'filename': filename
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        logger.error(f"Error in send_test_inventory_data: {str(e)}")
+        return Response(
+            {'error': f'Internal server error: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

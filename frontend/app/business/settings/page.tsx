@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/components/auth-provider";
+import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,37 +22,56 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
-import { Building2, Bell, Clock, Globe, Shield, Save } from "lucide-react";
+import { Building2, Bell, Clock, Save, Calendar } from "lucide-react";
+
+const reportingFrequencies = [
+  { value: "daily", label: "Every 1 day" },
+  { value: "3days", label: "Every 3 days" },
+  { value: "weekly", label: "Once a week" },
+  { value: "monthly", label: "Once a month" },
+  { value: "custom", label: "Custom" },
+];
 
 export default function BusinessSettings() {
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [settings, setSettings] = useState({
-    // Business Profile
-    businessName: "Byte2Bite Restaurant",
-    email: "contact@byte2bite.com",
-    phone: "+1 (555) 123-4567",
-    address: "123 Food Street, Cuisine City",
-    description: "A modern restaurant serving delicious meals",
-    cuisine: "international",
-    timezone: "America/New_York",
-
-    // Notifications
+    businessName: "",
+    email: "",
+    phone: "",
+    address: "",
+    description: "",
+    cuisine: "",
+    timezone: "",
     emailNotifications: true,
     orderNotifications: true,
     inventoryAlerts: true,
     marketingUpdates: false,
-
-    // Operating Hours
-    monday: { open: "09:00", close: "22:00" },
-    tuesday: { open: "09:00", close: "22:00" },
-    wednesday: { open: "09:00", close: "22:00" },
-    thursday: { open: "09:00", close: "22:00" },
-    friday: { open: "09:00", close: "23:00" },
-    saturday: { open: "10:00", close: "23:00" },
-    sunday: { open: "10:00", close: "22:00" },
+    reporting_frequency: "weekly",
+    custom_reporting_days: 7,
+    monday: { open: "09:00", close: "17:00" },
+    tuesday: { open: "09:00", close: "17:00" },
+    wednesday: { open: "09:00", close: "17:00" },
+    thursday: { open: "09:00", close: "17:00" },
+    friday: { open: "09:00", close: "17:00" },
+    saturday: { open: "10:00", close: "15:00" },
+    sunday: { open: "", close: "" },
   });
+
+  useEffect(() => {
+    if (user) {
+      setSettings((prev) => ({
+        ...prev,
+        businessName: user.first_name || "",
+        email: user.email || "",
+        phone: user.phone_number || "",
+        address: user.address || "",
+        reporting_frequency: user.reporting_frequency || "weekly",
+        custom_reporting_days: user.custom_reporting_days || 7,
+      }));
+    }
+  }, [user]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -74,30 +95,51 @@ export default function BusinessSettings() {
   ) => {
     setSettings((prev) => ({
       ...prev,
-      [day]: { ...prev[day as keyof typeof prev], [type]: value },
+      [day]: {
+        ...(prev[day as keyof typeof prev] as { open: string; close: string }),
+        [type]: value,
+      },
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
+    setIsSubmitting(true);
 
     try {
-      // Here you would typically save the settings to your database
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Update reporting frequency
+      const response = await fetch(
+        "http://127.0.0.1:8000/api/auth/update-reporting-frequency/",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            reporting_frequency: settings.reporting_frequency,
+            custom_reporting_days: settings.custom_reporting_days,
+          }),
+        }
+      );
 
-      toast({
-        title: "Success",
-        description: "Settings saved successfully",
-      });
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Settings updated successfully!",
+        });
+      } else {
+        throw new Error("Failed to update settings");
+      }
     } catch (error) {
+      console.error("Error updating settings:", error);
       toast({
         title: "Error",
-        description: "Failed to save settings. Please try again.",
+        description: "Failed to update settings. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsSaving(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -105,26 +147,20 @@ export default function BusinessSettings() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Business Settings
-          </h1>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+            <p className="text-gray-500 mt-1">
+              Manage your business preferences
+            </p>
+          </div>
           <Button
             type="submit"
             form="settings-form"
             className="bg-[#FF7F50] hover:bg-[#FF6B3D]"
-            disabled={isSaving}
+            disabled={isSubmitting}
           >
-            {isSaving ? (
-              <div className="flex items-center">
-                <Save className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </div>
-            ) : (
-              <div className="flex items-center">
-                <Save className="mr-2 h-4 w-4" />
-                Save Changes
-              </div>
-            )}
+            <Save className="mr-2 h-4 w-4" />
+            {isSubmitting ? "Saving..." : "Save Changes"}
           </Button>
         </div>
 
@@ -249,6 +285,56 @@ export default function BusinessSettings() {
             </CardContent>
           </Card>
 
+          {/* Reporting Frequency */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Calendar className="mr-2 h-5 w-5 text-[#FF7F50]" />
+                Inventory Reporting
+              </CardTitle>
+              <CardDescription>
+                Configure how often you want inventory reports generated
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="reporting_frequency">Report Frequency</Label>
+                <Select
+                  value={settings.reporting_frequency}
+                  onValueChange={(value) =>
+                    handleSelectChange("reporting_frequency", value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select reporting frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {reportingFrequencies.map((frequency) => (
+                      <SelectItem key={frequency.value} value={frequency.value}>
+                        {frequency.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {settings.reporting_frequency === "custom" && (
+                <div className="grid gap-2">
+                  <Label htmlFor="custom_reporting_days">Custom Days</Label>
+                  <Input
+                    id="custom_reporting_days"
+                    name="custom_reporting_days"
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={settings.custom_reporting_days}
+                    onChange={handleChange}
+                    placeholder="Enter number of days"
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Notifications */}
           <Card>
             <CardHeader>
@@ -335,33 +421,36 @@ export default function BusinessSettings() {
                       "sunday",
                     ].includes(key)
                   )
-                  .map(([day, hours]) => (
-                    <div
-                      key={day}
-                      className="flex items-center justify-between"
-                    >
-                      <Label className="capitalize w-32">{day}</Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type="time"
-                          value={hours.open}
-                          onChange={(e) =>
-                            handleTimeChange(day, "open", e.target.value)
-                          }
-                          className="w-32"
-                        />
-                        <span>to</span>
-                        <Input
-                          type="time"
-                          value={hours.close}
-                          onChange={(e) =>
-                            handleTimeChange(day, "close", e.target.value)
-                          }
-                          className="w-32"
-                        />
+                  .map(([day, hours]) => {
+                    const dayHours = hours as { open: string; close: string };
+                    return (
+                      <div
+                        key={day}
+                        className="flex items-center justify-between"
+                      >
+                        <Label className="capitalize w-32">{day}</Label>
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            type="time"
+                            value={dayHours.open}
+                            onChange={(e) =>
+                              handleTimeChange(day, "open", e.target.value)
+                            }
+                            className="w-32"
+                          />
+                          <span>to</span>
+                          <Input
+                            type="time"
+                            value={dayHours.close}
+                            onChange={(e) =>
+                              handleTimeChange(day, "close", e.target.value)
+                            }
+                            className="w-32"
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
               </div>
             </CardContent>
           </Card>

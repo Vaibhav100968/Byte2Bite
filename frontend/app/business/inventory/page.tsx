@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -32,6 +32,8 @@ import {
   Loader2,
 } from "lucide-react";
 import Link from "next/link";
+import { useToast } from "@/components/ui/use-toast";
+import { api, InventoryItem as ApiInventoryItem, ApiError } from "@/lib/api";
 
 interface Message {
   role: "user" | "assistant";
@@ -39,21 +41,21 @@ interface Message {
   timestamp: Date;
 }
 
-interface InventoryItem {
-  id: number;
-  name: string;
-  quantity: number;
-  unit: string;
-  reorderPoint: number;
-  supplier: string;
-  lastOrdered: string;
-  category?: string;
-}
-
 interface DetectedItem {
   name: string;
   confidence: number;
-  category?: string;
+  category: string;
+}
+
+// Updated interface to match the API model
+interface InventoryItem {
+  id: number;
+  name: string;
+  total_added: number;
+  total_sold: number;
+  current_quantity: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function InventoryManagement() {
@@ -72,60 +74,39 @@ export default function InventoryManagement() {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [newItem, setNewItem] = useState<Partial<InventoryItem>>({
     name: "",
-    quantity: 0,
-    unit: "kg",
-    reorderPoint: 0,
-    supplier: "",
-    category: "",
+    total_added: 0,
+    current_quantity: 0,
   });
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [detectedItems, setDetectedItems] = useState<DetectedItem[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [isLoadingInventory, setIsLoadingInventory] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
-  // Mock inventory data
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([
-    {
-      id: 1,
-      name: "Ground Beef",
-      quantity: 25,
-      unit: "kg",
-      reorderPoint: 10,
-      supplier: "Meat Co.",
-      lastOrdered: "2024-03-15",
-      category: "Meat",
-    },
-    {
-      id: 2,
-      name: "Lettuce",
-      quantity: 15,
-      unit: "kg",
-      reorderPoint: 5,
-      supplier: "Fresh Produce",
-      lastOrdered: "2024-03-18",
-      category: "Produce",
-    },
-    {
-      id: 3,
-      name: "Tomatoes",
-      quantity: 20,
-      unit: "kg",
-      reorderPoint: 8,
-      supplier: "Fresh Produce",
-      lastOrdered: "2024-03-17",
-      category: "Produce",
-    },
-    {
-      id: 4,
-      name: "Cheese",
-      quantity: 12,
-      unit: "kg",
-      reorderPoint: 6,
-      supplier: "Dairy Co.",
-      lastOrdered: "2024-03-16",
-      category: "Dairy",
-    },
-  ]);
+  // Load inventory items from API
+  useEffect(() => {
+    loadInventoryItems();
+  }, []);
+
+  const loadInventoryItems = async () => {
+    try {
+      setIsLoadingInventory(true);
+      const items = await api.getInventoryItems();
+      setInventoryItems(items);
+    } catch (error) {
+      const errorMessage =
+        error instanceof ApiError ? error.message : "Failed to load inventory";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingInventory(false);
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
@@ -175,38 +156,59 @@ export default function InventoryManagement() {
     return "I can help you analyze your inventory needs based on sales trends, seasonal patterns, and upcoming events. Would you like specific recommendations for any particular item?";
   };
 
-  const handleAddItem = () => {
-    if (editingItem) {
-      // Update existing item
-      setInventoryItems((items) =>
-        items.map((item) =>
-          item.id === editingItem.id
-            ? { ...item, ...newItem, id: item.id }
-            : item
-        )
-      );
-    } else {
-      // Add new item
-      const newId = Math.max(...inventoryItems.map((item) => item.id)) + 1;
-      setInventoryItems((items) => [
-        ...items,
-        {
-          ...newItem,
-          id: newId,
-          lastOrdered: new Date().toISOString().split("T")[0],
-        } as InventoryItem,
-      ]);
+  const handleAddItem = async () => {
+    try {
+      if (editingItem) {
+        // Update existing item
+        const updatedItem = await api.updateInventoryItem(editingItem.id, {
+          name: newItem.name || editingItem.name,
+          total_added: newItem.total_added || editingItem.total_added,
+          current_quantity:
+            newItem.current_quantity || editingItem.current_quantity,
+        });
+
+        setInventoryItems((items) =>
+          items.map((item) => (item.id === editingItem.id ? updatedItem : item))
+        );
+
+        toast({
+          title: "Success",
+          description: "Inventory item updated successfully",
+        });
+      } else {
+        // Add new item
+        const createdItem = await api.createInventoryItem({
+          name: newItem.name || "",
+          total_added: newItem.total_added || 0,
+          current_quantity: newItem.current_quantity || 0,
+        });
+
+        setInventoryItems((items) => [...items, createdItem]);
+
+        toast({
+          title: "Success",
+          description: "Inventory item added successfully",
+        });
+      }
+
+      setIsAddModalOpen(false);
+      setEditingItem(null);
+      setNewItem({
+        name: "",
+        total_added: 0,
+        current_quantity: 0,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof ApiError
+          ? error.message
+          : "Failed to save inventory item";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
-    setIsAddModalOpen(false);
-    setEditingItem(null);
-    setNewItem({
-      name: "",
-      quantity: 0,
-      unit: "kg",
-      reorderPoint: 0,
-      supplier: "",
-      category: "",
-    });
   };
 
   const handleEditItem = (item: InventoryItem) => {
@@ -215,11 +217,8 @@ export default function InventoryManagement() {
     setIsAddModalOpen(true);
   };
 
-  const filteredItems = inventoryItems.filter(
-    (item) =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.supplier.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredItems = inventoryItems.filter((item) =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleImageUpload = async (
@@ -264,11 +263,6 @@ export default function InventoryManagement() {
     setNewItem({
       ...newItem,
       name: item.name,
-      category: item.category,
-      quantity: 0,
-      unit: "kg",
-      reorderPoint: 0,
-      supplier: "",
     });
     setDetectedItems([]);
     setSelectedImage(null);
@@ -287,11 +281,8 @@ export default function InventoryManagement() {
               setEditingItem(null);
               setNewItem({
                 name: "",
-                quantity: 0,
-                unit: "kg",
-                reorderPoint: 0,
-                supplier: "",
-                category: "",
+                total_added: 0,
+                current_quantity: 0,
               });
               setIsAddModalOpen(true);
             }}
@@ -334,9 +325,10 @@ export default function InventoryManagement() {
                       <div>
                         <p className="font-medium">{item.name}</p>
                         <p className="text-sm text-gray-500">
-                          {item.quantity} {item.unit} • Reorder at{" "}
-                          {item.reorderPoint} {item.unit}
-                          {item.quantity <= item.reorderPoint && (
+                          Current Quantity: {item.current_quantity} • Total
+                          Added: {item.total_added} • Total Sold:{" "}
+                          {item.total_sold}
+                          {item.current_quantity <= 5 && (
                             <span className="ml-2 text-red-500 flex items-center">
                               <AlertCircle className="h-4 w-4 mr-1" />
                               Low Stock
@@ -344,8 +336,10 @@ export default function InventoryManagement() {
                           )}
                         </p>
                         <p className="text-sm text-gray-500">
-                          Supplier: {item.supplier} • Last ordered:{" "}
-                          {item.lastOrdered}
+                          Created:{" "}
+                          {new Date(item.created_at).toLocaleDateString()} •
+                          Updated:{" "}
+                          {new Date(item.updated_at).toLocaleDateString()}
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -548,68 +542,35 @@ export default function InventoryManagement() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="quantity">Quantity</Label>
+                  <Label htmlFor="total_added">Total Added</Label>
                   <Input
-                    id="quantity"
+                    id="total_added"
                     type="number"
-                    value={newItem.quantity}
+                    value={newItem.total_added}
                     onChange={(e) =>
                       setNewItem({
                         ...newItem,
-                        quantity: Number(e.target.value),
+                        total_added: Number(e.target.value),
                       })
                     }
                     required
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="unit">Unit</Label>
+                  <Label htmlFor="current_quantity">Current Quantity</Label>
                   <Input
-                    id="unit"
-                    value={newItem.unit}
+                    id="current_quantity"
+                    type="number"
+                    value={newItem.current_quantity}
                     onChange={(e) =>
-                      setNewItem({ ...newItem, unit: e.target.value })
+                      setNewItem({
+                        ...newItem,
+                        current_quantity: Number(e.target.value),
+                      })
                     }
                     required
                   />
                 </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="reorderPoint">Reorder Point</Label>
-                <Input
-                  id="reorderPoint"
-                  type="number"
-                  value={newItem.reorderPoint}
-                  onChange={(e) =>
-                    setNewItem({
-                      ...newItem,
-                      reorderPoint: Number(e.target.value),
-                    })
-                  }
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="supplier">Supplier</Label>
-                <Input
-                  id="supplier"
-                  value={newItem.supplier}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, supplier: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
-                  value={newItem.category}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, category: e.target.value })
-                  }
-                  required
-                />
               </div>
             </div>
           </div>
@@ -621,11 +582,8 @@ export default function InventoryManagement() {
                 setEditingItem(null);
                 setNewItem({
                   name: "",
-                  quantity: 0,
-                  unit: "kg",
-                  reorderPoint: 0,
-                  supplier: "",
-                  category: "",
+                  total_added: 0,
+                  current_quantity: 0,
                 });
                 setSelectedImage(null);
                 setDetectedItems([]);

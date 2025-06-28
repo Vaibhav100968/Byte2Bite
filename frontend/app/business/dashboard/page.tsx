@@ -11,6 +11,7 @@ import {
   Utensils,
   Settings,
   AlertCircle,
+  Camera,
 } from "lucide-react";
 
 export default function BusinessDashboard() {
@@ -121,6 +122,15 @@ export default function BusinessDashboard() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4">
+                <Button
+                  className="w-full bg-[#FF7F50] hover:bg-[#FF6B3D]"
+                  asChild
+                >
+                  <Link href="/business/analyze">
+                    <Camera className="mr-2 h-4 w-4" />
+                    Analyze Inventory Image
+                  </Link>
+                </Button>
                 <Button
                   className="w-full bg-[#FF7F50] hover:bg-[#FF6B3D]"
                   asChild

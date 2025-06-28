@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
-import { Camera, Home, User, LogOut } from "lucide-react";
+import { Home, User, LogOut } from "lucide-react";
 
 export function CustomerNav() {
   const { user, logout } = useAuth();
@@ -27,14 +27,6 @@ export function CustomerNav() {
               >
                 <Home className="h-4 w-4" />
                 <span>Restaurants</span>
-              </Link>
-
-              <Link
-                href="/customer/analyze"
-                className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                <Camera className="h-4 w-4" />
-                <span>AI Analyzer</span>
               </Link>
             </div>
           </div>

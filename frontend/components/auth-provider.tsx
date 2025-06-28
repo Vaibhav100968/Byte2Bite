@@ -18,6 +18,9 @@ type User = {
   phone_number: string;
   user_type: string;
   username: string;
+  address?: string;
+  reporting_frequency?: string;
+  custom_reporting_days?: number;
 };
 
 type AuthContextType = {

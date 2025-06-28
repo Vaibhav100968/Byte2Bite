@@ -5,6 +5,8 @@ urlpatterns = [
     path('customers/', views.CustomerListCreate.as_view(),
          name='customer-list-create'),
     path('analyze-image/', views.analyze_image, name='analyze-image'),
+    path('test-inventory-data/', views.send_test_inventory_data,
+         name='test-inventory-data'),
     path('inventory/', views.InventoryItemListCreate.as_view(),
          name='inventory-list-create'),
     path('inventory/<int:pk>/', views.InventoryItemDetail.as_view(),
