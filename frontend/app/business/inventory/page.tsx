@@ -275,21 +275,34 @@ export default function InventoryManagement() {
           <h1 className="text-3xl font-bold text-gray-900">
             Inventory Management
           </h1>
-          <Button
-            className="bg-[#FF7F50] hover:bg-[#FF6B3D]"
-            onClick={() => {
-              setEditingItem(null);
-              setNewItem({
-                name: "",
-                total_added: 0,
-                current_quantity: 0,
-              });
-              setIsAddModalOpen(true);
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add New Item
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="border-[#FF7F50] text-[#FF7F50] hover:bg-[#FF7F50] hover:text-white"
+              onClick={() => {
+                // Navigate to the analyze page
+                window.location.href = "/business/analyze";
+              }}
+            >
+              <Camera className="mr-2 h-4 w-4" />
+              AI Image Analyzer
+            </Button>
+            <Button
+              className="bg-[#FF7F50] hover:bg-[#FF6B3D]"
+              onClick={() => {
+                setEditingItem(null);
+                setNewItem({
+                  name: "",
+                  total_added: 0,
+                  current_quantity: 0,
+                });
+                setIsAddModalOpen(true);
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add New Item
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

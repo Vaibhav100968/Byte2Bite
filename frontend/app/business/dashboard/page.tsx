@@ -126,15 +126,6 @@ export default function BusinessDashboard() {
                   className="w-full bg-[#FF7F50] hover:bg-[#FF6B3D]"
                   asChild
                 >
-                  <Link href="/business/analyze">
-                    <Camera className="mr-2 h-4 w-4" />
-                    Analyze Inventory Image
-                  </Link>
-                </Button>
-                <Button
-                  className="w-full bg-[#FF7F50] hover:bg-[#FF6B3D]"
-                  asChild
-                >
                   <Link href="/business/inventory">
                     <Package className="mr-2 h-4 w-4" />
                     Manage Inventory

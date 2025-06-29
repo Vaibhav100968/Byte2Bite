@@ -12,18 +12,32 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Upload, Camera, FileImage, X } from "lucide-react";
+import { Loader2, Upload, Camera, FileImage, X, TestTube } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
-import { api, InventoryAnalysisResult, ApiError } from "@/lib/api";
+import {
+  api,
+  InventoryAnalysisResult,
+  ApiError,
+  TestInventoryResponse,
+} from "../lib/api";
 
 export function ImageAnalyzer() {
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSendingTestData, setIsSendingTestData] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
   const [analysisResult, setAnalysisResult] =
     useState<InventoryAnalysisResult | null>(null);
+  const [testResult, setTestResult] = useState<TestInventoryResponse | null>(
+    null
+  );
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -33,6 +47,15 @@ export function ImageAnalyzer() {
       console.log("Analysis result updated:", analysisResult);
     }
   }, [analysisResult]);
+
+  // Cleanup camera stream when component unmounts
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
 
   const handleImageSelect = (file: File) => {
     if (file && file.type.startsWith("image/")) {
@@ -75,12 +98,111 @@ export function ImageAnalyzer() {
     }
   };
 
+  const startCamera = async () => {
+    try {
+      setIsCapturing(true);
+      setError(null);
+
+      console.log("Requesting camera access...");
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "user", // Use front camera for computers
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+      });
+
+      console.log("Camera stream obtained:", stream);
+      streamRef.current = stream;
+
+      // Set showCamera first to ensure video element is rendered
+      setShowCamera(true);
+
+      // Wait a bit for the video element to be rendered
+      setTimeout(() => {
+        if (videoRef.current) {
+          console.log("Setting video source...");
+          videoRef.current.srcObject = stream;
+          videoRef.current
+            .play()
+            .then(() => {
+              console.log("Video started playing");
+            })
+            .catch((error) => {
+              console.error("Error playing video:", error);
+            });
+        } else {
+          console.error("Video ref is still null after timeout");
+        }
+      }, 100);
+    } catch (error: any) {
+      console.error("Error accessing camera:", error);
+      setError(`Unable to access camera: ${error.message}`);
+      toast({
+        title: "Camera Error",
+        description: `Unable to access camera: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setShowCamera(false);
+  };
+
+  const captureImage = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext("2d");
+
+      if (context) {
+        // Set canvas size to match video
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // Draw the video frame to canvas
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Convert canvas to blob
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              // Create a File object from the blob
+              const file = new File([blob], "camera-capture.jpg", {
+                type: "image/jpeg",
+              });
+              handleImageSelect(file);
+
+              // Stop camera after capture
+              stopCamera();
+
+              toast({
+                title: "Success",
+                description: "Image captured successfully!",
+              });
+            }
+          },
+          "image/jpeg",
+          0.8
+        );
+      }
+    }
+  };
+
   const handleCameraCapture = () => {
-    // This would need to be implemented with getUserMedia API
-    toast({
-      title: "Camera Capture",
-      description: "Camera capture feature coming soon!",
-    });
+    if (showCamera) {
+      captureImage();
+    } else {
+      startCamera();
+    }
   };
 
   const removeImage = () => {
@@ -114,9 +236,9 @@ export function ImageAnalyzer() {
 
     try {
       const result = await api.analyzeImage(image);
-      console.log("API Response:", result); // Debug log
-      console.log("Response type:", typeof result); // Debug log
-      console.log("Response keys:", Object.keys(result)); // Debug log
+      console.log("API Response:", result);
+      console.log("Response type:", typeof result);
+      console.log("Response keys:", Object.keys(result));
       setAnalysisResult(result);
       toast({
         title: "Analysis Complete",
@@ -143,6 +265,33 @@ export function ImageAnalyzer() {
     }
   };
 
+  const sendTestData = async () => {
+    setIsSendingTestData(true);
+    setError(null);
+    setTestResult(null);
+
+    try {
+      const result = await api.sendTestInventoryData();
+      setTestResult(result);
+      toast({
+        title: "Success",
+        description:
+          "Test inventory data sent successfully! Excel report generated.",
+      });
+    } catch (err) {
+      const errorMessage =
+        err instanceof ApiError ? err.message : "Failed to send test data";
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingTestData(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <Card>
@@ -152,88 +301,129 @@ export function ImageAnalyzer() {
             Inventory Image Analyzer
           </CardTitle>
           <CardDescription>
-            Upload an image to automatically count and identify inventory items
-            using AI
+            Upload an image or capture with camera to automatically count and
+            identify inventory items using AI
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Image Upload Area */}
-          <div className="space-y-4">
-            <Label htmlFor="image-upload">Select Image</Label>
-            <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                imagePreview
-                  ? "border-green-500 bg-green-50 dark:bg-green-950"
-                  : "border-gray-300 hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500"
-              }`}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-            >
-              {imagePreview ? (
-                <div className="space-y-4">
-                  <div className="relative inline-block">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="max-h-64 max-w-full rounded-lg shadow-md"
-                    />
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                      onClick={removeImage}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {image?.name}
-                  </p>
+          {/* Camera Interface */}
+          {showCamera && (
+            <div className="space-y-4">
+              <div className="relative">
+                <video
+                  ref={videoRef}
+                  className="w-full max-h-96 object-cover rounded-lg border"
+                  autoPlay
+                  playsInline
+                  muted
+                />
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4">
+                  <Button
+                    onClick={captureImage}
+                    className="bg-green-600 hover:bg-green-700"
+                    size="lg"
+                  >
+                    <Camera className="h-5 w-5 mr-2" />
+                    Capture
+                  </Button>
+                  <Button onClick={stopCamera} variant="destructive" size="lg">
+                    Cancel
+                  </Button>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                    <Upload className="h-6 w-6 text-gray-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Drag and drop an image here, or click to select
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                      Supports JPG, PNG, GIF up to 10MB
-                    </p>
-                  </div>
-                </div>
-              )}
+              </div>
+              <canvas ref={canvasRef} className="hidden" />
             </div>
+          )}
 
-            <div className="flex gap-2">
-              <Input
-                ref={fileInputRef}
-                id="image-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleFileInputChange}
-                className="hidden"
-              />
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex-1"
+          {/* Image Upload Area */}
+          {!showCamera && (
+            <div className="space-y-4">
+              <Label htmlFor="image-upload">Select Image</Label>
+              <div
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                  imagePreview
+                    ? "border-green-500 bg-green-50 dark:bg-green-950"
+                    : "border-gray-300 hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500"
+                }`}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
               >
-                <FileImage className="h-4 w-4 mr-2" />
-                Choose File
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleCameraCapture}
-                className="flex-1"
-              >
-                <Camera className="h-4 w-4 mr-2" />
-                Camera
-              </Button>
+                {imagePreview ? (
+                  <div className="space-y-4">
+                    <div className="relative inline-block">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="max-h-64 max-w-full rounded-lg shadow-md"
+                      />
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                        onClick={removeImage}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {image?.name}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                      <Upload className="h-6 w-6 text-gray-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Drag and drop an image here, or click to select
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                        Supports JPG, PNG, GIF up to 10MB
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  ref={fileInputRef}
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1"
+                >
+                  <FileImage className="h-4 w-4 mr-2" />
+                  Choose File
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleCameraCapture}
+                  disabled={isCapturing}
+                  className="flex-1"
+                >
+                  {isCapturing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Starting Camera...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="h-4 w-4 mr-2" />
+                      Camera
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Error Display */}
           {error && (
@@ -261,8 +451,77 @@ export function ImageAnalyzer() {
               </>
             )}
           </Button>
+
+          {/* Test Data Button */}
+          <div className="mt-4 pt-4 border-t">
+            <Button
+              onClick={sendTestData}
+              disabled={isSendingTestData}
+              variant="outline"
+              className="w-full"
+              size="lg"
+            >
+              {isSendingTestData ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending Test Data...
+                </>
+              ) : (
+                <>
+                  <TestTube className="h-4 w-4 mr-2" />
+                  Send Test Inventory Data
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              This will add sample food items to your inventory and generate an
+              Excel report
+            </p>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Test Results Display */}
+      {testResult && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Test Data Results</CardTitle>
+            <CardDescription>
+              Test inventory items added successfully
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4 p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+              <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2">
+                ✅ {testResult.message}
+              </h4>
+              <p className="text-green-700 dark:text-green-300 text-sm">
+                Excel report generated: {testResult.filename}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {testResult.updated_items.map((item) => (
+                <div
+                  key={item.name}
+                  className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium capitalize">{item.name}</span>
+                    <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      {item.count}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500 space-y-1">
+                    <div>Total Added: {item.total_added}</div>
+                    <div>Current Quantity: {item.current_quantity}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Results Display */}
       {analysisResult && (
