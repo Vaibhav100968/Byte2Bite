@@ -17,13 +17,13 @@ const cofounders = [
     name: "Vishal Jonnalgadda",
     title: "Cofounder & CTO",
     description: "",
-    image: "vishal.jpg",
+    image: "/vishal.jpeg",
   },
   {
     name: "Aleksander Stevens",
     title: "Cofounder & Chief Marketing Officer",
     description: "",
-    image: "alek.jpg",
+    image: "/alek.png",
   },
 ];
 

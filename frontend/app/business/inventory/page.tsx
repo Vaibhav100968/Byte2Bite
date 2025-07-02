@@ -63,7 +63,7 @@ export default function InventoryManagement() {
     {
       role: "assistant",
       content:
-        "Hello! I'm your inventory advisor. I can help you optimize your stock levels based on sales trends and seasonal patterns. What would you like to know?",
+        "Hello! I'm Byte2Bite, your AI inventory advisor. I can analyze your inventory data and provide smart recommendations to help you reduce waste and maximize profits. Ask me about:\n\n• Inventory optimization\n• Waste reduction strategies\n• Sales trend analysis\n• Reorder recommendations\n• Cost analysis\n\nWhat would you like to know about your inventory?",
       timestamp: new Date(),
     },
   ]);
@@ -84,6 +84,15 @@ export default function InventoryManagement() {
   const [isLoadingInventory, setIsLoadingInventory] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Business profile for personalized responses
+  const [businessProfile, setBusinessProfile] = useState({
+    name: "Byte2Bite Restaurant",
+    location: "New York",
+    type: "Restaurant",
+    hours: "8 AM - 10 PM",
+    goals: "Reduce waste and increase profits",
+  });
 
   // Load inventory items from API
   useEffect(() => {
@@ -121,39 +130,95 @@ export default function InventoryManagement() {
     setInput("");
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // Convert inventory data to CSV format for the AI
+      const csvData =
+        inventoryItems.length > 0
+          ? "item,sold,wasted,price,cost\n" +
+            inventoryItems
+              .map((item) => {
+                // Generate realistic pricing data based on item type
+                const basePrice = item.name.toLowerCase().includes("beef")
+                  ? 15.99
+                  : item.name.toLowerCase().includes("chicken")
+                  ? 12.99
+                  : item.name.toLowerCase().includes("pork")
+                  ? 11.99
+                  : item.name.toLowerCase().includes("cheese")
+                  ? 8.99
+                  : item.name.toLowerCase().includes("lettuce")
+                  ? 3.99
+                  : item.name.toLowerCase().includes("tomato")
+                  ? 4.99
+                  : item.name.toLowerCase().includes("onion")
+                  ? 2.99
+                  : item.name.toLowerCase().includes("milk")
+                  ? 5.99
+                  : item.name.toLowerCase().includes("bread")
+                  ? 4.99
+                  : item.name.toLowerCase().includes("potato")
+                  ? 3.99
+                  : 7.99;
+
+                const cost = basePrice * 0.6; // Assume 60% cost margin
+                const estimatedWaste = Math.floor(item.total_sold * 0.1); // Assume 10% waste
+
+                return `${item.name},${
+                  item.total_sold
+                },${estimatedWaste},${basePrice},${cost.toFixed(2)}`;
+              })
+              .join("\n")
+          : undefined;
+
+      console.log("Sending message to API:", input);
+      console.log("CSV data:", csvData);
+      console.log("Inventory items:", inventoryItems);
+      console.log("Business profile:", businessProfile);
+
+      // Call the real AI API
+      const response = await api.chatWithAI(input, csvData, businessProfile);
+
+      console.log("API response received:", response);
+
       const aiResponse: Message = {
         role: "assistant",
-        content: generateAIResponse(input),
+        content: response.response,
         timestamp: new Date(),
       };
+
       setMessages((prev) => [...prev, aiResponse]);
+    } catch (error) {
+      console.error("Error getting AI response:", error);
+
+      // Provide more specific error messages
+      let errorContent =
+        "I'm having trouble connecting to my AI brain right now. Please try again in a moment.";
+
+      if (error instanceof ApiError) {
+        if (error.status === 401) {
+          errorContent = "Please log in again to use the AI assistant.";
+        } else if (error.status === 500) {
+          errorContent =
+            "The AI service is temporarily unavailable. Please try again later.";
+        } else if (error.status === 404) {
+          errorContent =
+            "The AI service is not available. Please check if the backend server is running.";
+        } else {
+          errorContent = `AI service error: ${error.message}`;
+        }
+      }
+
+      // Fallback to a helpful error message
+      const errorMessage: Message = {
+        role: "assistant",
+        content: errorContent,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
-  };
-
-  const generateAIResponse = (userInput: string): string => {
-    // This is a mock response generator. In a real application, this would call an LLM API
-    const lowerInput = userInput.toLowerCase();
-
-    if (lowerInput.includes("beef") || lowerInput.includes("meat")) {
-      return "Based on recent sales trends, I recommend ordering 30kg of ground beef. Your current stock of 25kg is above the reorder point, but with the upcoming weekend rush, you might want to stock up. The price from Meat Co. is currently favorable.";
     }
-
-    if (lowerInput.includes("vegetable") || lowerInput.includes("produce")) {
-      return "I notice your lettuce and tomato stocks are healthy, but I recommend ordering 10kg of each to prepare for the weekend. The quality from Fresh Produce has been excellent lately, and prices are stable.";
-    }
-
-    if (lowerInput.includes("cheese")) {
-      return "Your cheese inventory is at 12kg, which is above the reorder point. However, considering the popularity of cheese-based items, I suggest ordering 15kg to ensure you don't run out during peak hours.";
-    }
-
-    if (lowerInput.includes("trend") || lowerInput.includes("analysis")) {
-      return "Based on the last 30 days of sales data:\n1. Burger sales are up 15% on weekends\n2. Salad orders peak during lunch hours\n3. Pizza orders are highest on Friday nights\nI recommend adjusting your inventory accordingly.";
-    }
-
-    return "I can help you analyze your inventory needs based on sales trends, seasonal patterns, and upcoming events. Would you like specific recommendations for any particular item?";
   };
 
   const handleAddItem = async () => {
@@ -383,9 +448,56 @@ export default function InventoryManagement() {
           <div className="lg:col-span-1">
             <Card className="h-[600px] flex flex-col">
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Bot className="mr-2 h-5 w-5 text-[#FF7F50]" />
-                  AI Inventory Advisor
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Bot className="mr-2 h-5 w-5 text-[#FF7F50]" />
+                    AI Inventory Advisor
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const newName = prompt(
+                        "Business Name:",
+                        businessProfile.name
+                      );
+                      const newLocation = prompt(
+                        "Location:",
+                        businessProfile.location
+                      );
+                      const newType = prompt(
+                        "Business Type:",
+                        businessProfile.type
+                      );
+                      const newHours = prompt(
+                        "Operating Hours:",
+                        businessProfile.hours
+                      );
+                      const newGoals = prompt(
+                        "Main Goal:",
+                        businessProfile.goals
+                      );
+
+                      if (
+                        newName &&
+                        newLocation &&
+                        newType &&
+                        newHours &&
+                        newGoals
+                      ) {
+                        setBusinessProfile({
+                          name: newName,
+                          location: newLocation,
+                          type: newType,
+                          hours: newHours,
+                          goals: newGoals,
+                        });
+                      }
+                    }}
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    ⚙️
+                  </Button>
                 </CardTitle>
                 <CardDescription>
                   Get smart recommendations for your inventory

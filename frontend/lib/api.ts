@@ -26,6 +26,26 @@ export interface InventoryItem {
   updated_at: string;
 }
 
+export interface ChatResponse {
+  response: string;
+  context_summary?: {
+    net_gain_total: number;
+    waste_loss_total: number;
+    top_seller: string;
+    low_seller: string;
+    optimize_more: string[];
+    cut_back: string[];
+  };
+}
+
+export interface BusinessProfile {
+  name: string;
+  location: string;
+  type: string;
+  hours: string;
+  goals: string;
+}
+
 export class ApiError extends Error {
   constructor(message: string, public status?: number) {
     super(message);
@@ -214,6 +234,49 @@ export const api = {
         response.status
       );
     }
+  },
+
+  async chatWithAI(
+    message: string,
+    csvData?: string,
+    businessProfile?: BusinessProfile
+  ): Promise<ChatResponse> {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new ApiError("No authentication token found");
+    }
+
+    const requestBody: any = {
+      message,
+    };
+
+    if (csvData) {
+      requestBody.csv_data = csvData;
+    }
+
+    if (businessProfile) {
+      requestBody.business_profile = businessProfile;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/chat/`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new ApiError(
+        data.error || "Failed to get AI response",
+        response.status
+      );
+    }
+
+    return data;
   },
 
   async register(userData: {

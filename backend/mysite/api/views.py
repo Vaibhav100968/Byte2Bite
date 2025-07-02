@@ -19,6 +19,7 @@ from django.http import FileResponse
 import openpyxl
 from openpyxl.styles import Font, PatternFill
 import logging
+from .chatbot.chatbot import analyze_csv, chat_with_gpt
 
 logger = logging.getLogger(__name__)
 
@@ -495,5 +496,64 @@ def send_test_inventory_data(request):
         logger.error(f"Error in send_test_inventory_data: {str(e)}")
         return Response(
             {'error': f'Internal server error: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def chat_with_ai(request):
+    """
+    Chat with Byte2Bite AI assistant
+    """
+    try:
+        user_message = request.data.get('message')
+        csv_data = request.data.get('csv_data')  # CSV data as string or file
+        business_profile = request.data.get('business_profile', {})
+
+        # Debug logging
+        logger.info(f"Chat API called with message: {user_message}")
+        logger.info(f"CSV data provided: {bool(csv_data)}")
+        logger.info(f"Business profile provided: {bool(business_profile)}")
+
+        if not user_message:
+            return Response(
+                {'error': 'Message is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Analyze CSV data if provided
+        context_summary = {}
+        if csv_data:
+            # If CSV data is provided as string, save to temp file
+            if isinstance(csv_data, str):
+                import tempfile
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+                    f.write(csv_data)
+                    temp_file_path = f.name
+
+                try:
+                    context_summary = analyze_csv(temp_file_path)
+                    logger.info(f"CSV analysis result: {context_summary}")
+                finally:
+                    os.unlink(temp_file_path)  # Clean up temp file
+            else:
+                # Handle file upload
+                context_summary = analyze_csv(csv_data)
+
+        # Get AI response with business profile
+        response = chat_with_gpt(
+            user_message, context_summary, business_profile)
+        logger.info(f"AI response generated: {response[:100]}...")
+
+        return Response({
+            'response': response,
+            'context_summary': context_summary
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"Error in chat_with_ai: {str(e)}")
+        return Response(
+            {'error': f'Chat error: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

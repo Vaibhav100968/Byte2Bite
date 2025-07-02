@@ -19,4 +19,5 @@ urlpatterns = [
          views.download_report, name='download-report'),
     path('update-reporting-frequency/', views.update_reporting_frequency,
          name='update-reporting-frequency'),
+    path('chat/', views.chat_with_ai, name='chat-with-ai'),
 ]
