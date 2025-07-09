@@ -30,10 +30,11 @@ import {
   Upload,
   Camera,
   Loader2,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/components/ui/use-toast";
-import { api, InventoryItem as ApiInventoryItem, ApiError } from "@/lib/api";
+import { api, InventoryItem as ApiInventoryItem, ApiError, TestInventoryResponse } from "@/lib/api";
 
 interface Message {
   role: "user" | "assistant";
@@ -58,15 +59,21 @@ interface InventoryItem {
   updated_at: string;
 }
 
+// Helper function to strip markdown formatting
+const stripMarkdown = (text: string): string => {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+    .replace(/\*(.*?)\*/g, '$1') // Remove italic
+    .replace(/`(.*?)`/g, '$1') // Remove code
+    .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Remove links
+    .replace(/^#+\s+/gm, '') // Remove headers
+    .replace(/^\s*[-*+]\s+/gm, '• ') // Convert list markers
+    .replace(/^\s*\d+\.\s+/gm, '• ') // Convert numbered lists
+    .trim();
+};
+
 export default function InventoryManagement() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content:
-        "Hello! I'm Byte2Bite, your AI inventory advisor. I can analyze your inventory data and provide smart recommendations to help you reduce waste and maximize profits. Ask me about:\n\n• Inventory optimization\n• Waste reduction strategies\n• Sales trend analysis\n• Reorder recommendations\n• Cost analysis\n\nWhat would you like to know about your inventory?",
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -82,7 +89,12 @@ export default function InventoryManagement() {
   const [detectedItems, setDetectedItems] = useState<DetectedItem[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [isLoadingInventory, setIsLoadingInventory] = useState(true);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [reports, setReports] = useState<any[]>([]);
+  const [isLoadingReports, setIsLoadingReports] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   // Business profile for personalized responses
@@ -94,9 +106,79 @@ export default function InventoryManagement() {
     goals: "Reduce waste and increase profits",
   });
 
+  // Load conversation from localStorage on component mount
+  useEffect(() => {
+    const savedMessages = localStorage.getItem('byte2bite_chat_history');
+    if (savedMessages) {
+      try {
+        const parsedMessages = JSON.parse(savedMessages);
+        // Convert timestamp strings back to Date objects
+        const messagesWithDates = parsedMessages.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        setMessages(messagesWithDates);
+      } catch (error) {
+        console.error('Error loading chat history:', error);
+        // If loading fails, start with default welcome message
+        setMessages([{
+          role: "assistant",
+          content: "Hello! I'm Byte2Bite, your AI inventory advisor. I can analyze your inventory data and provide smart recommendations to help you reduce waste and maximize profits. Ask me about:\n\n• Inventory optimization\n• Waste reduction strategies\n• Sales trend analysis\n• Reorder recommendations\n• Cost analysis\n\nWhat would you like to know about your inventory?",
+          timestamp: new Date(),
+        }]);
+      }
+    } else {
+      // No saved history, start with default welcome message
+      setMessages([{
+        role: "assistant",
+        content: "Hello! I'm Byte2Bite, your AI inventory advisor. I can analyze your inventory data and provide smart recommendations to help you reduce waste and maximize profits. Ask me about:\n\n• Inventory optimization\n• Waste reduction strategies\n• Sales trend analysis\n• Reorder recommendations\n• Cost analysis\n\nWhat would you like to know about your inventory?",
+        timestamp: new Date(),
+      }]);
+    }
+  }, []);
+
+  // Save conversation to localStorage whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Keep only the last 15 messages to prevent localStorage from getting too large
+      const messagesToSave = messages.slice(-15);
+      localStorage.setItem('byte2bite_chat_history', JSON.stringify(messagesToSave));
+    }
+  }, [messages]);
+
+  // Auto-scroll to bottom when new messages are added (unless user is manually scrolling)
+  useEffect(() => {
+    if (shouldAutoScroll && scrollAreaRef.current) {
+      const scrollArea = scrollAreaRef.current;
+      // Use setTimeout to ensure the DOM has updated
+      setTimeout(() => {
+        scrollArea.scrollTop = scrollArea.scrollHeight;
+      }, 100);
+    }
+  }, [messages, shouldAutoScroll]);
+
+  // Handle scroll events to detect user scrolling
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const element = e.currentTarget;
+    const scrollTop = element.scrollTop;
+    const scrollHeight = element.scrollHeight;
+    const clientHeight = element.clientHeight;
+    const isAtBottom = scrollHeight - scrollTop <= clientHeight + 5;
+    
+    // Only auto-scroll if user is at the bottom or very close to it
+    if (isAtBottom) {
+      setIsUserScrolling(false);
+      setShouldAutoScroll(true);
+    } else {
+      setIsUserScrolling(true);
+      setShouldAutoScroll(false);
+    }
+  };
+
   // Load inventory items from API
   useEffect(() => {
     loadInventoryItems();
+    loadReports();
   }, []);
 
   const loadInventoryItems = async () => {
@@ -117,6 +199,59 @@ export default function InventoryManagement() {
     }
   };
 
+  const loadReports = async () => {
+    try {
+      setIsLoadingReports(true);
+      const reportsData = await api.getReports();
+      setReports(reportsData);
+    } catch (error) {
+      console.error("Error loading reports:", error);
+    } finally {
+      setIsLoadingReports(false);
+    }
+  };
+
+  const downloadReport = async (reportId: number, filename: string) => {
+    try {
+      const response = await api.downloadReport(reportId);
+      
+      // Create a blob from the response
+      const blob = new Blob([response], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Download Started",
+        description: `Downloading ${filename}`,
+      });
+    } catch (error) {
+      const errorMessage = error instanceof ApiError ? error.message : "Failed to download report";
+      toast({
+        title: "Download Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+      setShouldAutoScroll(true);
+      setIsUserScrolling(false);
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!input.trim()) return;
 
@@ -129,6 +264,7 @@ export default function InventoryManagement() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+    setShouldAutoScroll(true); // Auto-scroll when user sends a message
 
     try {
       // Convert inventory data to CSV format for the AI
@@ -182,7 +318,7 @@ export default function InventoryManagement() {
 
       const aiResponse: Message = {
         role: "assistant",
-        content: response.response,
+        content: stripMarkdown(response.response), // Strip markdown formatting
         timestamp: new Date(),
       };
 
@@ -442,6 +578,59 @@ export default function InventoryManagement() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Reports Section */}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Inventory Reports & Spreadsheets</CardTitle>
+                <CardDescription>
+                  Download your inventory data as Excel spreadsheets
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoadingReports ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-[#FF7F50]" />
+                    <span className="ml-2">Loading reports...</span>
+                  </div>
+                ) : reports.length > 0 ? (
+                  <div className="space-y-4">
+                    {reports.map((report) => (
+                      <div
+                        key={report.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div>
+                          <p className="font-medium">
+                            {report.report_type === 'test' ? 'Test Inventory Report' : 'Inventory Report'}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Generated: {new Date(report.created_at).toLocaleDateString()}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Period: {new Date(report.period_start).toLocaleDateString()} - {new Date(report.period_end).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() => downloadReport(report.id, report.filename || 'inventory_report.xlsx')}
+                          className="bg-[#FF7F50] hover:bg-[#FF6B3D]"
+                          size="sm"
+                        >
+                          Download Excel
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No reports available yet.</p>
+                    <p className="text-sm mt-2">
+                      Generate reports by using the "Send Test Inventory Data" feature in the AI Analyzer.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* AI Advisor */}
@@ -503,9 +692,14 @@ export default function InventoryManagement() {
                   Get smart recommendations for your inventory
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
-                <ScrollArea className="flex-1 pr-4">
-                  <div className="space-y-4">
+              <CardContent className="flex-1 flex flex-col relative">
+                <ScrollArea
+                  className="flex-1 pr-4"
+                  onScroll={handleScroll}
+                  ref={scrollAreaRef}
+                  style={{ maxHeight: '400px' }}
+                >
+                  <div className="space-y-4 pb-4">
                     {messages.map((message, index) => (
                       <div
                         key={index}
@@ -534,23 +728,42 @@ export default function InventoryManagement() {
                     {isLoading && (
                       <div className="flex justify-start">
                         <div className="bg-gray-100 rounded-lg p-3">
-                          <p className="text-sm">Thinking...</p>
+                          <div className="flex items-center space-x-2">
+                            <div className="animate-pulse">Thinking</div>
+                            <div className="flex space-x-1">
+                              <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce"></div>
+                              <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                              <div className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
                   </div>
                 </ScrollArea>
-                <div className="mt-4 flex space-x-2">
+                
+                {/* Scroll to bottom button - only show when user has scrolled up */}
+                {isUserScrolling && (
+                  <Button
+                    onClick={scrollToBottom}
+                    size="sm"
+                    className="absolute bottom-16 right-4 bg-[#FF7F50] hover:bg-[#FF6B3D] text-white rounded-full w-8 h-8 p-0 shadow-lg"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                )}
+                <div className="mt-4 flex space-x-2 sticky bottom-0 bg-white pt-2 border-t">
                   <Input
                     placeholder="Ask about inventory recommendations..."
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                    className="flex-1"
                   />
                   <Button
                     onClick={handleSendMessage}
-                    disabled={isLoading}
-                    className="bg-[#FF7F50] hover:bg-[#FF6B3D]"
+                    disabled={isLoading || !input.trim()}
+                    className="bg-[#FF7F50] hover:bg-[#FF6B3D] min-w-[44px]"
                   >
                     <Send className="h-4 w-4" />
                   </Button>

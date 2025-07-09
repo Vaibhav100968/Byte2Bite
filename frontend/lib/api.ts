@@ -351,4 +351,53 @@ export const api = {
       );
     }
   },
+
+  async getReports() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new ApiError("No authentication token found");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/reports/`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new ApiError(
+        data.error || "Failed to fetch reports",
+        response.status
+      );
+    }
+
+    return data;
+  },
+
+  async downloadReport(reportId: number): Promise<Blob> {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new ApiError("No authentication token found");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/reports/${reportId}/download/`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new ApiError(
+        data.error || "Failed to download report",
+        response.status
+      );
+    }
+
+    return response.blob();
+  },
 };

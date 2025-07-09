@@ -274,9 +274,8 @@ export function ImageAnalyzer() {
       const result = await api.sendTestInventoryData();
       setTestResult(result);
       toast({
-        title: "Success",
-        description:
-          "Test inventory data sent successfully! Excel report generated.",
+        title: "CSV Uploaded Successfully",
+        description: "CSV uploaded successfully. You can access it under the Inventory tab.",
       });
     } catch (err) {
       const errorMessage =
@@ -498,6 +497,15 @@ export function ImageAnalyzer() {
               <p className="text-green-700 dark:text-green-300 text-sm">
                 Excel report generated: {testResult.filename}
               </p>
+              <div className="mt-3">
+                <Button
+                  onClick={() => window.location.href = '/business/inventory'}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  size="sm"
+                >
+                  View Spreadsheet
+                </Button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

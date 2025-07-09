@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
+import { Upload, X } from "lucide-react";
 
 export default function ReportIssue() {
   const { toast } = useToast();
@@ -29,6 +30,9 @@ export default function ReportIssue() {
     description: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [screenshot, setScreenshot] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -39,6 +43,26 @@ export default function ReportIssue() {
 
   const handleSelectChange = (value: string) => {
     setFormData((prev) => ({ ...prev, issueType: value }));
+  };
+
+  const handleScreenshotUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      setScreenshot(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setScreenshotPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeScreenshot = () => {
+    setScreenshot(null);
+    setScreenshotPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -59,9 +83,9 @@ export default function ReportIssue() {
     // Simulate form submission
     setTimeout(() => {
       toast({
-        title: "Success",
+        title: "Issue Reported Successfully",
         description:
-          "Your issue has been reported. We'll get back to you soon.",
+          "Your issue has been reported. We'll get back to you within 24 hours.",
       });
 
       // Reset form
@@ -70,6 +94,8 @@ export default function ReportIssue() {
         issueType: "",
         description: "",
       });
+      setScreenshot(null);
+      setScreenshotPreview(null);
 
       setIsSubmitting(false);
     }, 1500);
@@ -130,6 +156,51 @@ export default function ReportIssue() {
                   className="min-h-[150px]"
                   required
                 />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="screenshot">Upload Screenshot (Optional)</Label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                  {screenshotPreview ? (
+                    <div className="relative">
+                      <img
+                        src={screenshotPreview}
+                        alt="Screenshot preview"
+                        className="max-h-48 mx-auto rounded-lg"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={removeScreenshot}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="py-4">
+                      <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-500">
+                        Click to upload a screenshot or drag and drop
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="mt-2"
+                      >
+                        Choose File
+                      </Button>
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleScreenshotUpload}
+                    className="hidden"
+                  />
+                </div>
               </div>
               <Button
                 type="submit"

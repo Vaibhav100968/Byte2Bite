@@ -74,8 +74,8 @@ export default function ContactPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-lg">+91 9402975270</p>
-            <p className="text-sm text-gray-500">Available Mon-Fri, 9am-6pm</p>
+            <p className="text-lg">Not available</p>
+            <p className="text-sm text-gray-500">Please email us for support</p>
           </CardContent>
         </Card>
 
@@ -96,12 +96,12 @@ export default function ContactPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5 text-orange-500" />
-              Address
+              Location
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-lg">123 Food Street</p>
-            <p className="text-sm text-gray-500">Bangalore, Karnataka, India</p>
+            <p className="text-lg">Remote-based company</p>
+            <p className="text-sm text-gray-500">No physical office location</p>
           </CardContent>
         </Card>
       </div>
