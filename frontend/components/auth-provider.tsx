@@ -35,7 +35,7 @@ type AuthContextType = {
     reporting_frequency?: string,
     custom_reporting_days?: number
   ) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, userType?: "customer" | "business") => Promise<void>;
   logout: () => void;
   deleteAccount: () => Promise<void>;
 };
@@ -148,9 +148,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, userType?: "customer" | "business") => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/auth/login/", {
+      // Determine the login endpoint based on userType
+      let loginEndpoint = "http://127.0.0.1:8000/api/auth/login/";
+      if (userType === "business") {
+        loginEndpoint = "http://127.0.0.1:8000/api/auth/login/business/";
+      } else if (userType === "customer") {
+        loginEndpoint = "http://127.0.0.1:8000/api/auth/login/customer/";
+      }
+
+      const response = await fetch(loginEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -185,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.user.user_type === "business") {
         router.push("/business/dashboard");
       } else if (data.user.user_type === "customer") {
-        router.push("/customer/restaurants");
+        router.push("/customer/home");
       } else {
         router.push("/");
       }

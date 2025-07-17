@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Customer, InventoryItem, Sale, InventoryReport
+from .models import Customer, InventoryItem, Sale, InventoryReport, Store, Product, Order, OrderItem
 
 
 class CustomerSerializer(serializers.ModelSerializer):
@@ -31,3 +31,39 @@ class InventoryReportSerializer(serializers.ModelSerializer):
         fields = ['id', 'report_type', 'file_path',
                   'generated_at', 'period_start', 'period_end']
         read_only_fields = ['id', 'generated_at']
+
+
+class StoreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Store
+        fields = ['id', 'name', 'description', 'address', 'phone', 'is_active', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'description', 'price', 'image_url', 'in_stock', 'stock_quantity', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    product_price = serializers.DecimalField(source='product.price', max_digits=10, decimal_places=2, read_only=True)
+
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'product', 'product_name', 'product_price', 'quantity', 'price']
+        read_only_fields = ['id', 'price']
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+    store_name = serializers.CharField(source='store.name', read_only=True)
+    customer_email = serializers.CharField(source='customer.email', read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ['id', 'customer', 'customer_email', 'store', 'store_name', 'status', 'total_amount', 
+                  'delivery_address', 'items', 'created_at']
+        read_only_fields = ['id', 'total_amount', 'created_at']

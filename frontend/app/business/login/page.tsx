@@ -66,7 +66,7 @@ export default function BusinessLogin() {
 
     try {
       setIsLoading(true);
-      await login(formData.email, formData.password);
+      await login(formData.email, formData.password, "business");
     } catch (error: any) {
       console.error("Login error:", error);
       toast({

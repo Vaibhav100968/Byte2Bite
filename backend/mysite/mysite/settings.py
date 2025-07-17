@@ -32,6 +32,8 @@ SECRET_KEY = 'django-insecure-s5*cpd%hcsj8g5n$z6#06#eg(4%-%xn^s7nzumc2=l!d(qju@!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# Payment configuration removed - Stripe integration removed
+
 ALLOWED_HOSTS = ['*']  # Allow all hosts in development
 
 

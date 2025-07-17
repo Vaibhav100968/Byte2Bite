@@ -4,8 +4,12 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Customer, InventoryItem, Sale, InventoryReport
-from .serializers import CustomerSerializer, InventoryItemSerializer, SaleSerializer, InventoryReportSerializer
+from .models import Customer, InventoryItem, Sale, InventoryReport, Store, Product, Order, OrderItem
+from .serializers import CustomerSerializer, InventoryItemSerializer, SaleSerializer, InventoryReportSerializer, StoreSerializer, ProductSerializer, OrderSerializer, OrderItemSerializer
+# Stripe import removed
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from accounts.models import User
 from accounts.serializers import UserUpdateSerializer
 import requests
@@ -557,3 +561,76 @@ def chat_with_ai(request):
             {'error': f'Chat error: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# Store Views
+class StoreList(generics.ListAPIView):
+    serializer_class = StoreSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Store.objects.filter(is_active=True)
+
+
+class StoreDetail(generics.RetrieveAPIView):
+    serializer_class = StoreSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = Store.objects.all()
+
+
+# Product Views
+class ProductList(generics.ListAPIView):
+    serializer_class = ProductSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        store_id = self.kwargs.get('store_id')
+        return Product.objects.filter(store_id=store_id, in_stock=True)
+
+
+# Order Views
+class OrderListCreate(generics.ListCreateAPIView):
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Order.objects.filter(customer=self.request.user)
+
+    def perform_create(self, serializer):
+        # Calculate total amount
+        items_data = self.request.data.get('items', [])
+        total_amount = 0
+        
+        for item_data in items_data:
+            product = Product.objects.get(id=item_data['product_id'])
+            quantity = item_data['quantity']
+            total_amount += product.price * quantity
+
+        # Create order
+        order = serializer.save(
+            customer=self.request.user,
+            total_amount=total_amount
+        )
+
+        # Create order items
+        for item_data in items_data:
+            product = Product.objects.get(id=item_data['product_id'])
+            OrderItem.objects.create(
+                order=order,
+                product=product,
+                quantity=item_data['quantity'],
+                price=product.price
+            )
+
+        return order
+
+
+class OrderDetail(generics.RetrieveAPIView):
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Order.objects.filter(customer=self.request.user)
+
+
+# Stripe payment views removed - payment integration removed

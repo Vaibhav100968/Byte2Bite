@@ -25,13 +25,13 @@ export default function Home() {
             href="/business/login"
             className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-[#FF7F50] hover:bg-[#FF6B3D] md:py-4 md:text-lg md:px-10"
           >
-            Login for Businesses
+            I'm a Business
           </Link>
           <Link
             href="/customer/login"
             className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-[#FF7F50] hover:bg-[#FF6B3D] md:py-4 md:text-lg md:px-10"
           >
-            Login for Customers
+            I'm a Customer
           </Link>
         </div>
       </div>

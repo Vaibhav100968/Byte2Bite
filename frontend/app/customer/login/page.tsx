@@ -45,7 +45,7 @@ export default function CustomerLogin() {
 
     try {
       setIsLoading(true);
-      await login(formData.email, formData.password);
+      await login(formData.email, formData.password, "customer");
     } catch (error: any) {
       console.error("Login error:", error);
     } finally {

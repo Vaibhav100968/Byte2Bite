@@ -20,4 +20,15 @@ urlpatterns = [
     path('update-reporting-frequency/', views.update_reporting_frequency,
          name='update-reporting-frequency'),
     path('chat/', views.chat_with_ai, name='chat-with-ai'),
+    
+    # Store and Product endpoints
+    path('stores/', views.StoreList.as_view(), name='store-list'),
+    path('stores/<int:pk>/', views.StoreDetail.as_view(), name='store-detail'),
+    path('stores/<int:store_id>/products/', views.ProductList.as_view(), name='product-list'),
+    
+    # Order endpoints
+    path('orders/', views.OrderListCreate.as_view(), name='order-list-create'),
+    path('orders/<int:pk>/', views.OrderDetail.as_view(), name='order-detail'),
+    
+    # Payment endpoints removed - Stripe integration removed
 ]
