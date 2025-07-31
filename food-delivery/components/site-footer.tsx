@@ -14,12 +14,7 @@ export function SiteFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-gray-300 transition-colors hover:text-orange-500">
-                  Careers
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-gray-300 transition-colors hover:text-orange-500">
+                <Link href="/blog" className="text-gray-300 transition-colors hover:text-orange-500">
                   Blog
                 </Link>
               </li>
@@ -35,22 +30,22 @@ export function SiteFooter() {
             <h3 className="mb-4 text-lg font-semibold">For Restaurants</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="#" className="text-gray-300 transition-colors hover:text-orange-500">
+                <Link href="/restaurant/partner" className="text-gray-300 transition-colors hover:text-orange-500">
                   Partner with us
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-gray-300 transition-colors hover:text-orange-500">
+                <Link href="/restaurant/dashboard" className="text-gray-300 transition-colors hover:text-orange-500">
                   Restaurant dashboard
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-gray-300 transition-colors hover:text-orange-500">
+                <Link href="/restaurant/marketing" className="text-gray-300 transition-colors hover:text-orange-500">
                   Marketing solutions
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-gray-300 transition-colors hover:text-orange-500">
+                <Link href="/restaurant/api" className="text-gray-300 transition-colors hover:text-orange-500">
                   Restaurant API
                 </Link>
               </li>
@@ -61,22 +56,22 @@ export function SiteFooter() {
             <h3 className="mb-4 text-lg font-semibold">For Customers</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="#" className="text-gray-300 transition-colors hover:text-orange-500">
+                <Link href="/signup" className="text-gray-300 transition-colors hover:text-orange-500">
                   Sign up
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-gray-300 transition-colors hover:text-orange-500">
+                <Link href="/payment" className="text-gray-300 transition-colors hover:text-orange-500">
                   Add payment method
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-gray-300 transition-colors hover:text-orange-500">
+                <Link href="/orders" className="text-gray-300 transition-colors hover:text-orange-500">
                   Order history
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-gray-300 transition-colors hover:text-orange-500">
+                <Link href="/help" className="text-gray-300 transition-colors hover:text-orange-500">
                   Help center
                 </Link>
               </li>
@@ -87,22 +82,22 @@ export function SiteFooter() {
             <h3 className="mb-4 text-lg font-semibold">Legal</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="#" className="text-gray-300 transition-colors hover:text-orange-500">
+                <Link href="/terms" className="text-gray-300 transition-colors hover:text-orange-500">
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-gray-300 transition-colors hover:text-orange-500">
+                <Link href="/privacy" className="text-gray-300 transition-colors hover:text-orange-500">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-gray-300 transition-colors hover:text-orange-500">
+                <Link href="/cookies" className="text-gray-300 transition-colors hover:text-orange-500">
                   Cookie Policy
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-gray-300 transition-colors hover:text-orange-500">
+                <Link href="/accessibility" className="text-gray-300 transition-colors hover:text-orange-500">
                   Accessibility
                 </Link>
               </li>
